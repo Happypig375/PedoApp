@@ -46,6 +46,7 @@ type MainActivity() =
 
         Xamarin.Forms.Forms.Init (this, bundle)
         Xamarin.Forms.DependencyService.Register<PedometerAndroid>()
+        OxyPlot.Xamarin.Forms.Platform.Android.PlotViewRenderer.Init()
         let appcore  = new PedoApp.App()
         this.LoadApplication (appcore)
 

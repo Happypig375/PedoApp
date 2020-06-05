@@ -21,6 +21,7 @@ type AppDelegate () =
 
     override this.FinishedLaunching (app, options) =
         Forms.Init()
+        OxyPlot.Xamarin.Forms.Platform.iOS.PlotViewRenderer.Init()
         let appcore = new PedoApp.App()
         this.LoadApplication (appcore)
         base.FinishedLaunching(app, options)

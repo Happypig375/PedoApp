@@ -4,7 +4,7 @@ namespace PedoApp
 open System.Diagnostics
 open Fabulous
 open Fabulous.XamarinForms
-open Fabulous.XamarinForms.LiveUpdate
+open Fabulous.XamarinForms.OxyPlot
 open Xamarin.Forms
 
 module App = 
@@ -14,7 +14,7 @@ module App =
       { Count : int
         Step : int
         TimerOn: bool
-        Pedometer : int }
+        Pedometer : int list }
 
     type Msg = 
         | Increment 
@@ -25,7 +25,7 @@ module App =
         | TimedTick
         | PedometerUpdated of int
 
-    let initModel = { Count = 0; Step = 1; TimerOn=false; Pedometer = 0 }
+    let initModel = { Count = 0; Step = 1; TimerOn=false; Pedometer = [] }
 
     let init () =
         initModel, Cmd.ofSub (fun dispatch -> DependencyService.Get<Pedometer>().Step.Add(PedometerUpdated >> dispatch))
@@ -47,9 +47,13 @@ module App =
                 { model with Count = model.Count + model.Step }, timerCmd
             else 
                 model, Cmd.none
-        | PedometerUpdated p -> { model with Pedometer = p }, Cmd.none
+        | PedometerUpdated p -> { model with Pedometer = model.Pedometer @ [p] }, Cmd.none
 
     let view (model: Model) dispatch =
+        let plotModel = OxyPlot.PlotModel()
+        let line = OxyPlot.Series.LineSeries()
+        line.Points.AddRange(Seq.mapi (fun x y -> OxyPlot.DataPoint(float x, float y)) model.Pedometer)
+        plotModel.Series.Add line
         View.ContentPage(
           content = View.StackLayout(padding = Thickness 20.0, verticalOptions = LayoutOptions.Center,
             children = [ 
@@ -61,7 +65,8 @@ module App =
                 View.Slider(minimumMaximum = (0.0, 10.0), value = double model.Step, valueChanged = (fun args -> dispatch (SetStep (int (args.NewValue + 0.5)))), horizontalOptions = LayoutOptions.FillAndExpand)
                 View.Label(text = sprintf "Step size: %d" model.Step, horizontalOptions = LayoutOptions.Center) 
                 View.Button(text = "Reset", horizontalOptions = LayoutOptions.Center, command = (fun () -> dispatch Reset), commandCanExecute = (model <> initModel))
-                View.Label(text = sprintf "Pedometer: %d" model.Pedometer)
+                View.Label(text = sprintf "Pedometer: %A" model.Pedometer)
+                View.PlotView(model = plotModel, controller = OxyPlot.PlotController(), width = 400., height = 300., backgroundColor = Color.AliceBlue)
             ]))
 
     // Note, this declaration is needed if you enable LiveUpdate
