@@ -8,10 +8,13 @@ open Fabulous.XamarinForms.LiveUpdate
 open Xamarin.Forms
 
 module App = 
+    type Pedometer =
+        abstract Step : IEvent<int>
     type Model = 
       { Count : int
         Step : int
-        TimerOn: bool }
+        TimerOn: bool
+        Pedometer : int }
 
     type Msg = 
         | Increment 
@@ -20,10 +23,12 @@ module App =
         | SetStep of int
         | TimerToggled of bool
         | TimedTick
+        | PedometerUpdated of int
 
-    let initModel = { Count = 0; Step = 1; TimerOn=false }
+    let initModel = { Count = 0; Step = 1; TimerOn=false; Pedometer = 0 }
 
-    let init () = initModel, Cmd.none
+    let init () =
+        initModel, Cmd.ofSub (fun dispatch -> DependencyService.Get<Pedometer>().Step.Add(PedometerUpdated >> dispatch))
 
     let timerCmd =
         async { do! Async.Sleep 200
@@ -42,6 +47,7 @@ module App =
                 { model with Count = model.Count + model.Step }, timerCmd
             else 
                 model, Cmd.none
+        | PedometerUpdated p -> { model with Pedometer = p }, Cmd.none
 
     let view (model: Model) dispatch =
         View.ContentPage(
@@ -55,6 +61,7 @@ module App =
                 View.Slider(minimumMaximum = (0.0, 10.0), value = double model.Step, valueChanged = (fun args -> dispatch (SetStep (int (args.NewValue + 0.5)))), horizontalOptions = LayoutOptions.FillAndExpand)
                 View.Label(text = sprintf "Step size: %d" model.Step, horizontalOptions = LayoutOptions.Center) 
                 View.Button(text = "Reset", horizontalOptions = LayoutOptions.Center, command = (fun () -> dispatch Reset), commandCanExecute = (model <> initModel))
+                View.Label(text = sprintf "Pedometer: %d" model.Pedometer)
             ]))
 
     // Note, this declaration is needed if you enable LiveUpdate

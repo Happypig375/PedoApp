@@ -7,6 +7,14 @@ open Foundation
 open Xamarin.Forms
 open Xamarin.Forms.Platform.iOS
 
+type PedometeriOS() =
+    let pedometer = new CoreMotion.CMPedometer()
+    let event = Event<int>()
+    // steps from midnight
+    do pedometer.StartPedometerUpdates(DateTime.Today.ToNSDate(),
+        Action<_, _>(fun data _ -> event.Trigger data.NumberOfSteps.Int32Value))
+    interface PedoApp.App.Pedometer with member _.Step = event.Publish
+
 [<Register ("AppDelegate")>]
 type AppDelegate () =
     inherit FormsApplicationDelegate ()

@@ -12,6 +12,28 @@ open Android.Widget
 open Android.OS
 open Xamarin.Forms.Platform.Android
 
+
+type PedometerListener(onChanged) =
+    inherit Java.Lang.Object()
+    interface Android.Hardware.ISensorEventListener with
+        member _.OnAccuracyChanged(_, _) = ()
+        member _.OnSensorChanged e =
+            // steps since device boot
+            onChanged <| int e.Values.[0]
+type PedometerAndroid() =
+    let manager =  
+        Context.SensorService
+        |> Xamarin.Essentials.Platform.CurrentActivity.GetSystemService
+        :?> Android.Hardware.SensorManager
+    let sensor = manager.GetDefaultSensor Android.Hardware.SensorType.StepCounter
+    let event = Event<int>()         
+    do manager.RegisterListener(new PedometerListener(event.Trigger), sensor, Android.Hardware.SensorDelay.Fastest)
+       |> ignore
+    interface PedoApp.App.Pedometer with member _.Step = event.Publish
+[<UsesPermission("android.permission.ACTIVITY_RECOGNITION")>]
+[<UsesFeature(Name=Android.Hardware.Sensor.StringTypeStepCounter, Required=true)>]
+do ()
+
 [<Activity (Label = "PedoApp.Android", Icon = "@drawable/icon", Theme = "@style/MainTheme", MainLauncher = true, ConfigurationChanges = (ConfigChanges.ScreenSize ||| ConfigChanges.Orientation))>]
 type MainActivity() =
     inherit FormsAppCompatActivity()
@@ -23,7 +45,7 @@ type MainActivity() =
         Xamarin.Essentials.Platform.Init(this, bundle)
 
         Xamarin.Forms.Forms.Init (this, bundle)
-
+        Xamarin.Forms.DependencyService.Register<PedometerAndroid>()
         let appcore  = new PedoApp.App()
         this.LoadApplication (appcore)
 
