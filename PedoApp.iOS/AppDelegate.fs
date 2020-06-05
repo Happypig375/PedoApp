@@ -11,9 +11,13 @@ type PedometeriOS() =
     let pedometer = new CoreMotion.CMPedometer()
     let event = Event<int>()
     // steps from midnight
-    do pedometer.StartPedometerUpdates(DateTime.Today.ToNSDate(),
-        Action<_, _>(fun data _ -> event.Trigger data.NumberOfSteps.Int32Value))
-    interface PedoApp.App.Pedometer with member _.Step = event.Publish
+    do
+        if CoreMotion.CMPedometer.IsStepCountingAvailable then
+            pedometer.StartPedometerUpdates(DateTime.Today.ToNSDate(),
+                Action<_, _>(fun data _ -> event.Trigger data.NumberOfSteps.Int32Value))
+    interface PedoApp.App.Pedometer with
+        member _.IsSupported = CoreMotion.CMPedometer.IsStepCountingAvailable
+        member _.Step = event.Publish
 
 [<Register ("AppDelegate")>]
 type AppDelegate () =
@@ -21,6 +25,7 @@ type AppDelegate () =
 
     override this.FinishedLaunching (app, options) =
         Forms.Init()
+        Xamarin.Forms.DependencyService.Register<PedometeriOS>()
         OxyPlot.Xamarin.Forms.Platform.iOS.PlotViewRenderer.Init()
         let appcore = new PedoApp.App()
         this.LoadApplication (appcore)

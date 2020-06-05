@@ -27,9 +27,13 @@ type PedometerAndroid() =
         :?> Android.Hardware.SensorManager
     let sensor = manager.GetDefaultSensor Android.Hardware.SensorType.StepCounter
     let event = Event<int>()         
-    do manager.RegisterListener(new PedometerListener(event.Trigger), sensor, Android.Hardware.SensorDelay.Fastest)
-       |> ignore
-    interface PedoApp.App.Pedometer with member _.Step = event.Publish
+    do
+        if sensor <> null then
+            manager.RegisterListener(new PedometerListener(event.Trigger), sensor, Android.Hardware.SensorDelay.Fastest)
+            |> ignore
+    interface PedoApp.App.Pedometer with
+        member _.IsSupported = sensor <> null
+        member _.Step = event.Publish
 [<UsesPermission("android.permission.ACTIVITY_RECOGNITION")>]
 [<UsesFeature(Name=Android.Hardware.Sensor.StringTypeStepCounter, Required=true)>]
 do ()

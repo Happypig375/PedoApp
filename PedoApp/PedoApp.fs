@@ -9,6 +9,7 @@ open Xamarin.Forms
 
 module App = 
     type Pedometer =
+        abstract IsSupported : bool
         abstract Step : IEvent<int>
     type Model = 
       { Count : int
@@ -28,7 +29,13 @@ module App =
     let initModel = { Count = 0; Step = 1; TimerOn=false; Pedometer = [] }
 
     let init () =
-        initModel, Cmd.ofSub (fun dispatch -> DependencyService.Get<Pedometer>().Step.Add(PedometerUpdated >> dispatch))
+        initModel, Cmd.ofSub (fun dispatch ->
+            let pedometer = DependencyService.Get<Pedometer>()
+            if pedometer.IsSupported then
+                pedometer.Step.Add(PedometerUpdated >> dispatch)
+            else Xamarin.Forms.Application.Current.MainPage.DisplayAlert("Oh no", "Pedometer is not supported", "Ok")
+                 |> ignore
+        )
 
     let timerCmd =
         async { do! Async.Sleep 200
